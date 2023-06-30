@@ -22,18 +22,20 @@ namespace testf
 
             try
             {
-                string repository = req.Query["repository"];
+                string repo = req.Query["repo"];
+                string owner = req.Query["owner"];
 
-                if (string.IsNullOrEmpty(repository))
+                if (string.IsNullOrEmpty(owner) || string.IsNullOrEmpty(repo))
                 {
-                    repository = req.Form["repository"];
+                    repo = req.Form["repository"];
+                    owner = req.Form["owner"];
                 }
 
                 string accessToken = Environment.GetEnvironmentVariable("GithubAccessToken");
 
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                var response = await httpClient.GetAsync($"https://api.github.com/repos/{repository}/commits");
+                var response = await httpClient.GetAsync($"https://api.github.com/repos/{owner}/{repo}/commits");
 
                 var commits = await response.Content.ReadAsStringAsync();
 
