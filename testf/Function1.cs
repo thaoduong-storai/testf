@@ -20,28 +20,35 @@ namespace testf
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            string repository = req.Query["repository"];
-
-            if (string.IsNullOrEmpty(repository))
+            try
             {
-                repository = req.Form["repository"];
+                string repository = req.Query["repository"];
+
+                if (string.IsNullOrEmpty(repository))
+                {
+                    repository = req.Form["repository"];
+                }
+
+                string accessToken = Environment.GetEnvironmentVariable("GithubAccessToken");
+
+                var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                var response = await httpClient.GetAsync($"https://api.github.com/repos/{repository}/commits");
+
+                var commits = await response.Content.ReadAsStringAsync();
+
+                var teamsWebhookUrl = Environment.GetEnvironmentVariable("TeamsWebhookUrl");
+                var payload = new { text = commits };
+                var jsonPayload = JsonConvert.SerializeObject(payload);
+                var httpContent = new StringContent(jsonPayload);
+                await httpClient.PostAsync(teamsWebhookUrl, httpContent);
+
+                return new OkObjectResult("Get the commit and send the message successfully!");
+            }catch(Exception ex)
+            {
+                log.LogError(ex, "error");
+                return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
-
-            string accessToken = Environment.GetEnvironmentVariable("GithubAccessToken");
-
-            var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            var response = await httpClient.GetAsync($"https://api.github.com/repos/{repository}/commits");
-
-            var commits = await response.Content.ReadAsStringAsync();
-
-            var teamsWebhookUrl = Environment.GetEnvironmentVariable("TeamsWebhookUrl");
-            var payload = new { text = commits };
-            var jsonPayload = JsonConvert.SerializeObject(payload);
-            var httpContent = new StringContent(jsonPayload);
-            await httpClient.PostAsync(teamsWebhookUrl, httpContent);
-
-            return new OkObjectResult("Get the commit and send the message successfully!");
         }
     }
 }
