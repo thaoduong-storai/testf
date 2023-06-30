@@ -31,15 +31,15 @@ namespace testf
 
             var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            var response = httpClient.GetAsync($"https://api.github.com/repos/{repository}/commits").Result;
+            var response = await httpClient.GetAsync($"https://api.github.com/repos/{repository}/commits");
 
-            var commits = response.Content.ReadAsStringAsync().Result;
+            var commits = await response.Content.ReadAsStringAsync();
 
             var teamsWebhookUrl = Environment.GetEnvironmentVariable("TeamsWebhookUrl");
             var payload = new { text = commits };
             var jsonPayload = JsonConvert.SerializeObject(payload);
             var httpContent = new StringContent(jsonPayload);
-            httpClient.PostAsync(teamsWebhookUrl, httpContent);
+            await httpClient.PostAsync(teamsWebhookUrl, httpContent);
 
             return new OkObjectResult("Get the commit and send the message successfully!");
         }
