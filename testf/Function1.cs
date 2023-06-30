@@ -35,6 +35,11 @@ namespace testf
 
             var commits = response.Content.ReadAsStringAsync().Result;
 
+            var teamsWebhookUrl = Environment.GetEnvironmentVariable("TeamsWebhookUrl");
+            var payload = new { text = commits };
+            var jsonPayload = JsonConvert.SerializeObject(payload);
+            var httpContent = new StringContent(jsonPayload);
+            httpClient.PostAsync(teamsWebhookUrl, httpContent);
 
             return new OkObjectResult("Get the commit and send the message successfully!");
         }
