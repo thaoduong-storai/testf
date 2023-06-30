@@ -39,18 +39,43 @@ namespace testf
 
                 var commits = await response.Content.ReadAsStringAsync();
 
+                var latestCommit = JsonConvert.DeserializeObject<CommitData[]>(commits)[0];
+
+                var message = $"Latest commit: {latestCommit.Commit.Message}" + Environment.NewLine;
+                message += $"Author: {latestCommit.Commit.Author.Name}" + Environment.NewLine;
+                message += $"Commit URL: {latestCommit.HtmlUrl}";
+
                 var teamsWebhookUrl = Environment.GetEnvironmentVariable("TeamsWebhookUrl");
                 var payload = new { text = commits };
                 var jsonPayload = JsonConvert.SerializeObject(payload);
                 var httpContent = new StringContent(jsonPayload);
                 await httpClient.PostAsync(teamsWebhookUrl, httpContent);
 
-                return new OkObjectResult("Get the commit and send the message successfully!");
-            }catch(Exception ex)
+                return new OkObjectResult(commits);
+            }
+            catch(Exception ex)
             {
                 log.LogError(ex, "error");
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
         }
+
+        private class CommitData
+        {
+            public CommitDetails Commit { get; set; }
+            public string HtmlUrl { get; set; }
+        }
+
+        private class CommitDetails
+        {
+            public string Message { get; set; }
+            public AuthorDetails Author { get; set; }
+        }
+
+        private class AuthorDetails
+        {
+            public string Name { get; set; }
+        }
     }
 }
+
