@@ -1,12 +1,13 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 
 namespace testf
 {
@@ -14,22 +15,28 @@ namespace testf
     {
         [FunctionName("Function1")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            string name = req.Query["name"];
+            string repository = req.Query["repository"];
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            if (string.IsNullOrEmpty(repository))
+            {
+                repository = req.Form["repository"];
+            }
 
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
+            string accessToken = Environment.GetEnvironmentVariable("GithubAccessToken");
 
-            return new OkObjectResult(responseMessage);
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            var response = httpClient.GetAsync($"https://api.github.com/repos/{repository}/commits").Result;
+
+            var commits = response.Content.ReadAsStringAsync().Result;
+
+
+            return new OkObjectResult("Get the commit and send the message successfully!");
         }
     }
 }
